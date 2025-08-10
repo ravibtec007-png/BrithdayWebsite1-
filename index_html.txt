@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Birthday Surprise</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- GSAP Core -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- Three.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r148/three.min.js"></script>
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      height: 100%;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0f172a;
+      color: white;
+    }
+
+    .scene {
+      perspective: 1000px;
+      transform-style: preserve-3d;
+    }
+
+    .parallax-tilt {
+      transition: transform 0.2s ease;
+      will-change: transform;
+    }
+
+    #heart-canvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+    }
+
+    .step {
+      display: none;
+    }
+
+    .step.active {
+      display: flex;
+    }
+
+    .final-message {
+      opacity: 0;
+      transform: translateY(50px);
+      transition: all 1s ease;
+    }
+
+    .final-message.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4 relative">
+
+  <!-- Background 3D Hearts -->
+  <canvas id="heart-canvas"></canvas>
+
+  <!-- Main Content -->
+  <div id="main" class="scene max-w-xl w-full text-center parallax-tilt">
+
+    <!-- Step 5 -->
+    <div id="step5" class="step active flex-col items-center gap-4">
+      <div class="text-5xl">🎂</div>
+      <h1 class="text-3xl font-bold">My Wish For You</h1>
+      <p class="text-lg mt-2">May the next year bring you all the love, success, and pure happiness you so rightfully deserve. May your dreams soar higher than ever.</p>
+      <div id="final-text" class="final-message text-2xl font-semibold mt-6">Happy Birthday, my crush! ❤️</div>
+      <button id="celebrateBtn" class="mt-6 px-6 py-3 bg-pink-600 hover:bg-pink-700 text-white rounded-full transition-all">Celebrate!</button>
+    </div>
+  </div>
+
+  <script>
+    // Tilt effect
+    const tiltElement = document.querySelector('.parallax-tilt');
+    document.addEventListener('mousemove', (e) => {
+      const { innerWidth: w, innerHeight: h } = window;
+      const x = (e.clientX - w/2) / w * 20;
+      const y = (e.clientY - h/2) / h * 20;
+      tiltElement.style.transform = `rotateY(${x}deg) rotateX(${-y}deg)`;
+    });
+
+    // Confetti explosion
+    function launchConfetti() {
+      const duration = 5 * 1000;
+      const end = Date.now() + duration;
+
+      const colors = ['#bb0000', '#ffffff'];
+
+      (function frame() {
+        confetti({
+          particleCount: 3,
+          angle: 60,
+          spread: 55,
+          origin: { x: 0 },
+          emojis: ['❤️', '💖', '✨'],
+        });
+        confetti({
+          particleCount: 3,
+          angle: 120,
+          spread: 55,
+          origin: { x: 1 },
+          emojis: ['❤️', '💖', '✨'],
+        });
+
+        if (Date.now() < end) {
+          requestAnimationFrame(frame);
+        }
+      }());
+
+      // Gentle shower
+      confetti({
+        particleCount: 200,
+        spread: 100,
+        origin: { y: 0.6 },
+        emojis: ['❤️', '💖', '✨']
+      });
+    }
+
+    // Final hearts animation
+    let hearts = [];
+    let scene, camera, renderer;
+
+    function initHearts() {
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+      camera.position.z = 5;
+
+      renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('heart-canvas'), alpha: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+
+      const heartShape = new THREE.Shape();
+      const x = 0, y = 0;
+      heartShape.moveTo(x, y);
+      heartShape.bezierCurveTo(x, y, x - 0.3, y + 0.5, x, y + 1);
+      heartShape.bezierCurveTo(x + 0.3, y + 0.5, x, y, x, y);
+
+      const geometry = new THREE.ShapeGeometry(heartShape);
+      const material = new THREE.MeshBasicMaterial({ color: 0xff69b4 });
+
+      for (let i = 0; i < 50; i++) {
+        const mesh = new THREE.Mesh(geometry, material.clone());
+        mesh.position.set((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 5);
+        mesh.scale.setScalar(0.2 + Math.random() * 0.3);
+        scene.add(mesh);
+        hearts.push(mesh);
+      }
+
+      animateHearts();
+    }
+
+    function animateHearts() {
+      requestAnimationFrame(animateHearts);
+      hearts.forEach(heart => {
+        heart.rotation.z += 0.01;
+        heart.position.y += 0.005;
+        heart.material.opacity = Math.max(0, heart.material.opacity - 0.001);
+      });
+      renderer.render(scene, camera);
+    }
+
+    // Final sequence
+    document.getElementById('celebrateBtn').addEventListener('click', () => {
+      const btn = document.getElementById('celebrateBtn');
+      btn.disabled = true;
+      gsap.to(btn, { opacity: 0, duration: 0.5 });
+
+      // Show final text
+      setTimeout(() => {
+        document.getElementById('final-text').classList.add('show');
+      }, 800);
+
+      // Launch confetti
+      setTimeout(() => {
+        launchConfetti();
+      }, 1000);
+
+      // Animate hearts away
+      setTimeout(() => {
+        hearts.forEach((heart, i) => {
+          gsap.to(heart.position, {
+            y: heart.position.y + 5 + Math.random() * 5,
+            x: heart.position.x + (Math.random() - 0.5) * 2,
+            z: heart.position.z + (Math.random() - 0.5) * 2,
+            duration: 3,
+            ease: "power2.out"
+          });
+          gsap.to(heart.material, {
+            opacity: 0,
+            duration: 3,
+            ease: "power2.out"
+          });
+        });
+      }, 1500);
+    });
+
+    initHearts();
+
+    // Responsive canvas
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>
